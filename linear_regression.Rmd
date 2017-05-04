@@ -1,0 +1,320 @@
+---
+title: "Linear Regression"
+author: "Miguel Conde"
+date: "3 de mayo de 2017"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 4
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.align = "center")
+```
+
+
+## Key concepts
+
+## Basics
+Let's begin with just one predictor (X) for an outcome (Y).
+
+If X and Y are highly correlated, we may assume that the true relationship between X and Y obeys a model like this:
+
+$$
+Y_i = \beta_0 + \beta_1 X_i + \epsilon_i
+$$
+
+Our work is to find out estimators of the true values $\beta_0$ and $\beta_1$ in order to estimate $Y_i$ as:
+
+$$
+\hat{Y}_i = b_0 + b_1 X_i
+$$
+
+So the residual $e_i$ accounts for:
+
+$$
+e_i = Y_i - \hat{Y}_i
+$$
+Meaning that $e_i$ is an estimator of $\epsilon_i$:
+
+$$
+Y_i = \beta_0 + \beta_1 X_i + \epsilon_i = b_0 + b_1 X_i + e_i = \hat{Y}_i + e_i
+$$
+
+## Model Estimation
+**Ordinary least squares (*OLS*) regression**: The estimated model coefficients $b_0$ and $b_1$ are those which *minimise the sum of the squared residuals*:
+
+$$
+\sum_i{(Y_i - \hat{Y}_i)^2} = \sum_i{e_i^2}
+$$
+
+For an univariate linear regression:
+
+$$
+b_1 = Cor(Y, X) \frac{S_X}{S_Y} = \frac{Cov(Y, X)}{S_Y}
+$$
+and:
+$$
+b_0 = \bar{Y} - b_1 \bar{X}
+$$
+$S_X$ and $S_Y$ are empirical standard deviations:
+
+$$
+S_X^2 = \frac{1}{n-1}\sum_{i=1}^n(X_i - \bar{X})^2
+$$
+$\bar{X}$ is the empirical mean:
+
+$$
+\bar{X} = \frac{1}{n} \sum_{i=1}^nX_i
+$$
+The empirical covariance is:
+
+$$
+Cov(Y, X) = \frac{1}{n-1}\sum_{i=1}^n(Y_i - \bar{Y})(X_i - \bar{X})
+$$
+
+And the empirical correlation:
+$$
+Cor(Y, X) = \frac{Cov(Y, X)}{S_YS_X}
+$$
+
+### Example
+```{r}
+library(UsingR)
+data(diamond)
+
+library(highcharter)
+hchart(diamond, "point", hcaes(x = carat, y = price))
+
+```
+These will be our predictor X and outcome Y:
+```{r}
+X <- diamond$carat
+Y <- diamond$price
+```
+
+Fitting the model in R is easy:
+```{r eval = FALSE}
+m_fit <- lm (formula = price ~ carat, data = diamond)
+```
+
+But using our terminology:
+```{r}
+m_fit <- lm (Y ~ X)
+summary(m_fit)
+```
+
+Let's calculate the coefficients step by step:
+```{r}
+n <- length(X)
+
+m_X <- mean(X)
+m_X
+sum(X) / n
+
+m_Y <- mean(Y)
+```
+
+
+```{r}
+S_X <- sd(X)
+S_X^2
+var(X)
+sum((X - m_X)^2) / (n - 1)
+
+S_Y <- sd(Y)
+```
+
+```{r}
+Cov_Y_X <- cov(X, Y)
+Cov_Y_X
+sum((X - m_X)*(Y - m_Y)) / (n - 1)
+```
+```{r}
+Cor_Y_X <- cor(X, Y)
+Cor_Y_X
+Cov_Y_X / S_X / S_Y
+```
+
+And, finally:
+```{r}
+b_1 <- Cor_Y_X * S_Y / S_X
+b_1
+```
+
+```{r}
+b_0 <- m_Y - b_1 * m_X
+b_0
+```
+
+Let's check our results:
+```{r}
+coef(m_fit)
+```
+
+```{r}
+head(residuals(m_fit))
+```
+
+```{r}
+head(Y - fitted(m_fit))
+```
+
+[`broom`](https://cran.r-project.org/web/packages/broom/index.html) is an interesting library:
+
+*Convert statistical analysis objects from R into tidy data frames, so that they can more easily be combined, reshaped and otherwise processed with tools like 'dplyr', 'tidyr' and 'ggplot2'. The package provides three S3 generics: **tidy**, which summarizes a model's statistical findings such as coefficients of a regression; **augment**, which adds columns to the original data such as predictions, residuals and cluster assignments; and **glance**, which provides a one-row summary of model-level statistics.*
+
+
+```{r}
+library(broom)
+head(augment(m_fit))
+```
+
+And this is our model visualization:
+
+```{r}
+library(dplyr)
+fit <- arrange(augment(m_fit), X)
+head(fit)
+```
+
+```{r}
+hc <- highchart() %>% 
+  hc_add_series(name = "Diamond", type = "point", data = diamond, 
+                hcaes(x = carat, y = price)) %>%
+  hc_add_series(name = "Fitted", type = "line", data = fit,
+                hcaes(x = X, y = .fitted), id = "fit") %>%
+  hc_add_series(type = "arearange", data = fit, 
+                hcaes(x = X, low = .fitted - 2*.se.fit,
+                      high = .fitted + 2*.se.fit),
+                linkedTo = "fit") %>%
+  hc_xAxis(title = list(text = "Carat")) %>%
+  hc_yAxis(title = list(text = "Price")) %>%
+  hc_title(text = "Price / Carat")
+hc
+```
+
+
+## Multiple linear regression
+Let's try now with multiple predictors, $X_1, X_2,...,X_K$. Our regression model will be:
+
+$$
+Y_i = \beta_0 + \sum_{j=1}^k{\beta_i X_{ij}} + \epsilon_i
+$$
+
+
+
+And we must estimate:
+$$
+\hat{Y}_i = b_0 + \sum_{i=1}^k{b_i X_{ij}}
+$$
+Of course, the residual $e_i$ is:
+
+$$
+e_i = Y_i - \hat{Y}_i
+$$
+
+Using matrices we can write:
+
+$$
+Y =  X \beta + \epsilon \\
+\hat{Y} = XB
+$$
+
+
+We'll use these data:
+```{r}
+data("GaltonFamilies")
+str(GaltonFamilies)
+```
+
+### In R
+```{r}
+m_fit2 <- lm(childHeight ~ father + mother, data = GaltonFamilies)
+summary(m_fit2)
+```
+
+### Analytical fit
+
+$$
+B = (X^TX)^{-1}X^TY
+$$
+
+```{r}
+N <- nrow(GaltonFamilies)
+
+Y <- GaltonFamilies$childHeight
+X1 <- GaltonFamilies$father
+X2 <- GaltonFamilies$mother
+
+mY <- matrix(Y, ncol = 1, nrow = length(Y))
+mX <- matrix(c(rep(1, N), X1, X2), ncol = 3, nrow = N)
+
+## OLS
+mB <- solve( t(mX) %*% mX ) %*% t(mX) %*% mY
+mB
+
+coef(m_fit2)
+```
+
+
+
+## Overall Model performance
+
+### The $R^2$ value
+We'd like that the sum of the squared residuals
+$$
+SS_{res} = \sum_i{(Y_i - \hat{Y}_i)^2}
+$$
+
+should be small, specifically in comparison to the total variability of the outcome:
+$$
+SS_{tot} = \sum_i{(Y_i - \bar{Y}_i)^2}
+$$
+```{r}
+Y_hat <- mX %*% mB
+
+SS_resid <- sum((Y - Y_hat)^2)
+SS_resid
+```
+
+```{r}
+SS_tot <- sum((Y - mean(Y))^2)
+SS_tot
+```
+
+What we’d like to do is to convert these two fairly meaningless numbers
+into one number. 
+
+If we define:
+$$
+R^2 = 1- \frac{SS_{res}}{SS_{tot}}
+$$
+
+* $R^2 = 1$  if the regression model makes no errors in predicting
+the data, as $SS_{res}=0$.
+
+* $R^2 = 0$ if the model can't account at all for any of the outcome variability, i.e., $SS_{res}=SS_{tot}$.
+
+```{r}
+R_squared <- 1 - SS_resid/SS_tot
+R_squared
+```
+
+So, the $R^2$ value interpretation is the following: it is the proportion of the variance in the outcome variable that can be accounted for by the predictors. In this case, the predictors explains `r R_squared`% of the variance in the outcome.
+
+### Regression and correlation
+
+### The adjusted $R^2$ value
+
+## Hypothesis tests
+
+## Confidence intervals
+
+## Assumptions of linear regression and how to check them
+
+## Regression model selection
+
