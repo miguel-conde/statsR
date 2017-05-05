@@ -16,9 +16,9 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
 ```
 
 
-## Key concepts
+# Key concepts
 
-## Basics
+# Basics
 Let's begin with just one predictor (X) for an outcome (Y).
 
 If X and Y are highly correlated, we may assume that the true relationship between X and Y obeys a model like this:
@@ -44,7 +44,7 @@ $$
 Y_i = \beta_0 + \beta_1 X_i + \epsilon_i = b_0 + b_1 X_i + e_i = \hat{Y}_i + e_i
 $$
 
-## Model Estimation
+# Model Estimation
 **Ordinary least squares (*OLS*) regression**: The estimated model coefficients $b_0$ and $b_1$ are those which *minimise the sum of the squared residuals*:
 
 $$
@@ -81,7 +81,7 @@ $$
 Cor(Y, X) = \frac{Cov(Y, X)}{S_YS_X}
 $$
 
-### Example
+## Example
 ```{r}
 library(UsingR)
 data(diamond)
@@ -198,7 +198,7 @@ hc
 ```
 
 
-## Multiple linear regression
+# Multiple linear regression
 Let's try now with multiple predictors, $X_1, X_2,...,X_K$. Our regression model will be:
 
 $$
@@ -231,13 +231,13 @@ data("GaltonFamilies")
 str(GaltonFamilies)
 ```
 
-### In R
+## In R
 ```{r}
 m_fit2 <- lm(childHeight ~ father + mother, data = GaltonFamilies)
 summary(m_fit2)
 ```
 
-### Analytical fit
+## Analytical fit
 
 $$
 B = (X^TX)^{-1}X^TY
@@ -262,7 +262,9 @@ coef(m_fit2)
 
 
 
-## Overall Model performance
+# Model performance
+
+## Whole model performance
 
 ### The $R^2$ value
 We'd like that the sum of the squared residuals
@@ -274,6 +276,7 @@ should be small, specifically in comparison to the total variability of the outc
 $$
 SS_{tot} = \sum_i{(Y_i - \bar{Y}_i)^2}
 $$
+With our regression:
 ```{r}
 Y_hat <- mX %*% mB
 
@@ -304,17 +307,86 @@ R_squared <- 1 - SS_resid/SS_tot
 R_squared
 ```
 
-So, the $R^2$ value interpretation is the following: it is the proportion of the variance in the outcome variable that can be accounted for by the predictors. In this case, the predictors explains `r R_squared`% of the variance in the outcome.
+So, the $R^2$ value interpretation is the following: it is the proportion of the variance in the outcome variable that can be accounted for by the predictors. In this case, the predictors explains `r round(100*R_squared, 2)`% of the variance in the outcome.
 
-### Regression and correlation
+#### Regression and correlation
+For a simple regression with just 1 predictor, the square of the Pearson correlation coefficient, $r^2$, is identical to the $R^2$ value.
 
-### The adjusted $R^2$ value
+Going back to our univariate example:
+```{r}
+X <- diamond$carat
+Y <- diamond$price
 
-## Hypothesis tests
+cor(X, Y)^2
+```
+```{r}
+s_m_fit <- summary(m_fit)
+s_m_fit$r.squared
+```
+The same number.
 
-## Confidence intervals
+#### The adjusted $R^2$ value
+Adding more predictors into the model will always make $^2$ to increase. To avoid this behavioour, we use *adjusted* $R^2$. If we have $K$ predictors and $N$ observations:
 
-## Assumptions of linear regression and how to check them
+$$
+adj.R^2 = 1 - (\frac{SS_{res}}{SS_{tot}} \times \frac{N-1}{N-K-1})
+$$
+Note that $N-1$ are the residuals degrees of freedom and $N - K - 1$ are the total degrees of freedom, as we'll soon see.
 
-## Regression model selection
+However, the adjusted $R^2$ can't be interpreted as the proportion of vaiance in the outcome variable that is explained by the model.
+
+### Hypothesis tests I: the F-statistic
+We're going to try this hypothesis: there is no relationship between the predictors and the outcome:
+
+$$
+H_0:Y_i = b_0 + e_i
+$$
+The alternative hypothesis, of course, is:
+$$
+\hat{Y}_i = b_0 + \sum_{i=1}^k{b_i X_{ij}} + e_i
+$$
+To test these hypothesis, the trick is divide up the total variance $SS_{tot}$ into the sum of the residuals variance $SS_{resid}$ and the regression model variance$SS_{mod}$:
+
+$$
+SS_{tot} = SS_{mod} + SS{res}
+$$
+Hence:
+$$
+SS_{mod} = SS_{tot} - SS_{res} = \sum_{i=1}^N(Y_i - \bar{Y}) - \sum_{i=1}^N(Y_i - \hat{Y}_i) = \sum_{i=1}^N( \hat{Y}_i - \bar{Y})
+$$
+To convert the sums of squares into mean squares we divide by the degrees of freedom:
+
+$$
+MS_{mod} = \frac{SS_{mod}}{df_{mod}} \\
+MS_{res} = \frac{SS_{res}}{df_{res}}
+$$
+Where:
+
+* $df_{mod} = K$, the number of predictors
+* $df_{tot} = N - 1$, $N$ observations minus 1 outcome mean $\bar{Y}$
+* $df_{res} = df_{tot} - df_{mod} = N - K - 1$
+
+Now we calculate the F-statistic:
+
+$$
+F = \frac{MS_{mod}}{MS_{res}}
+$$
+Large F values indicate that the null hypothesis is performing poorly in comparison to the alternative hypothesis. And the associated p-value allow us to reject or not $H_0$.
+
+
+
+```{r}
+s_m_fit$fstatistic
+```
+
+
+
+## Hypothesis tests II: tests for individual coefficients.
+Passing the F-statistic test (i.e., rejecting the null) doesn't imply that the model is good, while failing this test is a pretty strong indicator that the model has problems.
+
+# Confidence intervals
+
+# Assumptions of linear regression and how to check them
+
+# Regression model selection
 

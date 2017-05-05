@@ -1,0 +1,148 @@
+---
+title: 't-tests: comparing two means'
+author: "Miguel Conde"
+date: "5 de mayo de 2017"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 4
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.align = "center")
+```
+
+# The one-sample $z$-test
+
+Let's suppose we are considering some population that can be described by a normal distribution whose parameters are perfectly knwon to us: mean $\mu_0 = 67.5$ and standard deviation $\sigma_0 = 10$.
+
+
+```{r}
+mu_0    <- 67.5
+sigma_0 <- 10
+```
+
+Consider now *another* population, also described by a normal distribution and whose standard deviation is perfectly known to us, $\sigma = 9.5$
+
+We now take some sample from this second population, let's say we obtain:
+```{r}
+sample_data <- c(50, 60, 60, 64, 66, 
+                 66 ,67, 69, 70, 74, 
+                 76, 76, 77, 79, 79,
+                 79, 81, 82, 82, 89)
+```
+
+And calculate some summary statistics:
+```{r}
+mean(sample_data)
+sd(sample_data)
+```
+
+
+We wonder if the mean of the second population is or not equal to the first's or it's been just a matter of chance (due to the small sample size) that $\bar{X} > \mu$.
+
+This is rarelly a real situation because, in the real world, we probably won't be aware of the true distribution of the population (i.e., \sigma will be unknown).
+
+Hence, our **null hypothesis** is:
+$$
+H_0: \mu = \mu_0 = 67.5
+$$
+
+And the **alternative hypothesis**:
+$$
+H_a: \mu \neq \mu_0 
+$$
+
+
+How can we discriminate between $H_0$ and $H_a$?
+
+First, let's measure the distance between $\mu_0$ and $\bar{X}$:
+
+$$
+\bar{X} - \mu_0
+$$
+
+Is this quantity is pretty close to 0, the null hypothesis is quite likely to be true. But what does "pretty close to 0" mean?
+
+If the null hypothesis is true then:
+
+1 - We are certain that the second population is normal with mean $\mu_0$ and standar deviation $\sigma_1$.
+
+$$
+X \sim Normal(\mu_0, \sigma^2 )
+$$
+
+2 - By means of the CLT, the distribution of the sample means $\bar{X}$ is also normal with standard deviation (aka *standard error*):
+$$
+SE(\bar{X}) = \frac{\sigma}{\sqrt{N}}
+$$
+
+$$
+\bar{X} \sim N(\mu_0, SE(\bar{X}))
+$$
+
+Well, let's measure now the same distance but in "number of standar errors" units.This is called a **standard score** (in this case, a $z$-score):
+
+$$
+z_{\bar{X}} = \frac{\bar{X} - \mu_0}{SE(\bar{X})} = \frac{\bar{X} - \mu_0}{\frac{\sigma}{\sqrt{N}}}
+$$
+Carefully notice that this $z$-score has a *standard normal distribution*:
+
+$$
+z_{\bar{X}} \sim Normal(0, 1)
+$$
+
+In other words, regardless of what scale the original data are on, the $z$-statistic itself always has the same interpretation: *it’s equal to the number of standard errors that separate the observed sample mean $\bar{X}$ from the population mean $\mu_0$ predicted by the null hypothesis*.
+
+And the $\alpha$% critical regions for $z$-test are always the same, as illustrated in this table:
+
+| desired $\alpha$ level | 2-sided test | 1-sided                           |
+|:----------------------:|:------------:|:---------------------------------:|
+| .1                     | `r -qnorm(.1/2)`  | `r qnorm(0.1, lower.tail = FALSE)`    |
+| .05                    | `r -qnorm(.05/2)`  | `r qnorm(.05, lower.tail = FALSE)`   |
+| .01                    | `r -qnorm(.01/2)`  | `r qnorm(.01, lower.tail = FALSE)`   |
+| .001                   | `r -qnorm(.001/2)`  | `r qnorm(.001, lower.tail = FALSE)` |
+
+## Example
+### Step by step
+```{r}
+mu_0  <- 67.5
+sigma <- 9.5
+
+N <- length(sample_data)
+
+sem <- sigma / sqrt(N) # Standard error = standard deviation of the mean
+
+sample_mean <- mean(sample_data)
+
+z_score <- (sample_mean - mu_0) / sem
+z_score
+```
+Let's calculate the p-value.
+
+```{r}
+upper_area <- pnorm(q = z_score, lower.tail = FALSE)
+upper_area
+
+lower_area <- pnorm(q = -z_score)
+lower_area
+```
+
+```{r}
+p_value <- upper_area + lower_area
+p_value
+```
+
+### With R
+Study carefully `z_test()`
+```{r}
+source("z_Test.R")
+z_test(x = sample_data , mu = mu_0, stdev = sigma)
+```
+
+We could sum up this way:
+
+*"With a mean of `r sample_mean` in the sample , and assuming a true population standard deviation of `r sigma`, we can conclude that the sample population mean have significantly different statistics scores to the reference population ($z = `r round(z_score, 3)`$, $N = `r N`$, $p = `r round(p_value, 3)`$)."*
