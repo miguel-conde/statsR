@@ -343,7 +343,7 @@ H_0:Y_i = b_0 + e_i
 $$
 The alternative hypothesis, of course, is:
 $$
-\hat{Y}_i = b_0 + \sum_{i=1}^k{b_i X_{ij}} + e_i
+H_1: \hat{Y}_i = b_0 + \sum_{i=1}^k{b_i X_{ij}} + e_i
 $$
 To test these hypothesis, the trick is divide up the total variance $SS_{tot}$ into the sum of the residuals variance $SS_{resid}$ and the regression model variance$SS_{mod}$:
 
@@ -352,7 +352,7 @@ SS_{tot} = SS_{mod} + SS{res}
 $$
 Hence:
 $$
-SS_{mod} = SS_{tot} - SS_{res} = \sum_{i=1}^N(Y_i - \bar{Y}) - \sum_{i=1}^N(Y_i - \hat{Y}_i) = \sum_{i=1}^N( \hat{Y}_i - \bar{Y})
+SS_{mod} = SS_{tot} - SS_{res} = \sum_{i=1}^N(Y_i - \bar{Y})^2 - \sum_{i=1}^N(Y_i - \hat{Y}_i)^2 = \sum_{i=1}^N( \hat{Y}_i - \bar{Y})^2
 $$
 To convert the sums of squares into mean squares we divide by the degrees of freedom:
 

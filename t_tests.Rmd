@@ -146,3 +146,149 @@ z_test(x = sample_data , mu = mu_0, stdev = sigma)
 We could sum up this way:
 
 *"With a mean of `r sample_mean` in the sample , and assuming a true population standard deviation of `r sigma`, we can conclude that the sample population mean have significantly different statistics scores to the reference population ($z = `r round(z_score, 3)`$, $N = `r N`$, $p = `r round(p_value, 3)`$)."*
+
+### Assumptions of the $z$-test
+
+1. *Normality*. The z-test assumes that the true population distribution is normal.
+2. *Independence*. The observations in your data set are not correlated with each other, or related to each other in some way. You have to ask yourself if it’s really plausible to imagine that each observation is a completely random sample from the population that you’re interested in.
+3. *Known standard deviation*. The true standard deviation
+of the population is known to the researcher. This is just stupid. In no real world data analysis problem do you know the standard deviation $\sigma$ of some population, but are completely ignorant about the mean $\mu$. In other words, this assumption is *always wrong*.
+
+In view of the third asumption, we must move on to a more realistic test, the *t-test*.
+
+# The one-sample t-test
+Coming back to our example, all we have is our raw data that can give me an *estimate* of the population standard deviation:
+```{r}
+sd(sample_data)
+```
+
+I.e., while we can't say that $\sigma = 9.5$, we *can* say that $\hat{\sigma} = `r round(sd(sample_data),2)`$
+
+Perhaps we could run a $z$-test using $\hat{\sigma} = `r round(sd(sample_data),2)`$ instead of $\sigma = 9.5$. In fact this approach could by chance throw a significant result, but not *quite* correct.
+
+The Gosset's "Student test" solves this problem in a very similar manner as the $z$-test does. 
+
+The null hypothesis is that the population mean $\mu$ is equal to some specified value $\mu_0$, and the alternative hypothesis is that it is not. Like the $z$-test, we assume that the data are normally distributed; but we do not assume that the population standard deviation $\sigma$ is known in advance.
+
+The key thing that Gosset figured out is how we should accommodate the
+fact that we aren’t completely sure what the true standard deviation is. The answer is that it subtly changes the sampling distribution. In the t-test, our test statistic (now called a t-statistic) is calculated in exactly the same way I mentioned above.
+
+$$
+t =\frac{\bar{X} - \mu_0}{\hat{\sigma}\sqrt(N)}
+$$
+
+The only thing that has changed in the equation is that instead of using the known true value $\sigma$, we use the estimate $\hat{\sigma}$.
+
+And if this estimate has been constructed from $N$ observations, then the sampling distribution turns into a t-distribution with $N-1$ **degrees of freedom** (df). 
+
+The t distribution is very similar to the normal distribution, but has “heavier” tails. Notice, though, that as df gets larger, the t-distribution starts to look identical to the standard normal distribution.
+
+```{r}
+N <- 11
+x_seq <- seq(-4, 4, length.out = N)
+
+n_t_d <- data.frame(x = x_seq, 
+                    n_distr = dnorm(x_seq), 
+                    t_distr = dt(x_seq, df = N - 1))
+library(highcharter)
+hc <- highchart() %>% 
+  hc_add_series(name = "N(0,1)", type = "spline", data = n_t_d, 
+                hcaes(x = x, y = n_distr)) %>%
+  hc_add_series(name = "t(10)", type = "spline", data = n_t_d, 
+                hcaes(x = x, y = t_distr)) %>%
+  hc_title(text = "Normal(0, 1) vs. t distribution (df = 10)")
+hc
+```
+
+## t-test in R
+
+Doing a t-test step by step is almst the same as a $z$-test, so we won't do it.
+
+In practice we'll use `t.test()`.
+
+```{r}
+t.test(x = sample_data,
+       mu = 67.5,        # the population mean is 67.5 if the null is true
+       alternative = "two.sided", # default
+       conf.level = .95  # default
+       )
+```
+
+We could report the result by saying something like this:
+```{r include = FALSE}
+t_test<- t.test(x = sample_data,
+       mu = 67.5,        # the population mean is 67.5 if the null is true
+       alternative = "two.sided", # default
+       conf.level = .95  # default
+       )
+```
+
+
+With a mean grade of $`r mean(sample_data)`$, the sample data shows a slightly higher mean than the average of $`r mu_0`$ ($t(`r t_test$parameter`) = `r as.numeric(round(t_test$statistic, 2))`$, $p < 0.05$); the 95% confidence interval is $[`r round(t_test$conf.int[1], 1)`, `r round(t_test$conf.int[2], 1)`]$.
+
+## Assumptions of the t-test
+
+1. *Normality*. We’re still assuming that the phe population distribution is normal.
+2. *Independence*. Once again, we have to assume that the observations in our sample are generated independently of one another.
+
+Overall, these two assumptions aren’t terribly unreasonable, and as a consequence the one-sample t-test is pretty widely used in practice as a way of comparing a sample mean against a hypothesised population mean.
+
+# The 2 samples t-tests
+
+## The independent samples t-test 
+
+Although the one sample t-test has its uses, it’s not the most typical example of a t-test. 
+
+A much more common situation arises when you’ve got two different groups of observations and the research question that you’re asking is whether or not the two groups have the same population mean (i.e., if the difference between the two sample means is zero). 
+
+$$
+H_0: \\
+H_1:
+$$
+This is the situation that the independent samples t-tests are designed for.
+
+
+### Both populations have the same variance - Student test 
+
+
+
+
+### Populations with different variances - Welch test
+One of the biggest problems with the Student test is the assumption that both groups have exactly the same variance, which is often not satisfied by real data.
+
+It’s a bit odd to talk about the cure before talking about the diagnosis, but as it happens the Welch test is the default t-test in R, so this is probably the best place to discuss it.
+
+
+
+## The paired-samples t-test
+Regardless of whether we’re talking about the Student test or the Welch test, an independent samples t-test is intended to be used in a situation where you have two samples that are, well, independent of one another. 
+
+This situation arises naturally when participants are assigned randomly to one of two experimental conditions, but it provides a very poor approximation to other sorts of research designs. 
+
+In particular, a repeated measures design – in which each participant is measured (with respect to the same outcome variable) in both experimental conditions – is not suited for analysis using independent samples t-tests. 
+
+For example, we might be interested in whether listening to music reduces people’s working memory capacity. To that end, we could measure each person’s working memory capacity in two conditions: with music, and without music. In an experimental design such as this one, each participant appears in both groups.
+
+This requires us to approach the problem in a different way; by using the **paired samples t-test**.
+
+In short, this 2 paired samples test is identical to a 1 sample test where the sample data is the *difference* of the 2 samples data
+
+$$
+H_0: \\
+H_1:
+$$
+
+# Effect size
+
+# Checking the normality of a sample
+
+## QQ plots
+
+## Shapiro-Wilk tests
+
+# Testing non-normal data with Wilcoxon tests
+
+## Two sample Wilcoxon test
+
+## One sample Wilcoxon test
+
